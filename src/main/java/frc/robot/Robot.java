@@ -14,9 +14,10 @@ import edu.wpi.first.wpilibj.XboxController;
 
 import com.ctre.phoenix6.hardware.TalonFXS;
 //import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
-import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
-//test22  
-//testbranch commit
+//import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
+
+
+
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
@@ -30,8 +31,13 @@ public class Robot extends TimedRobot {
   //coral roller motor
   private TalonFXS coralRoller = new TalonFXS(16,"rio");
 
-  public int runonce = 1;
-  public double coralrotoroffset = 0;
+
+  double coralPoserror;
+  double coralkP = 0.1;
+  double coraltargetpos = 3;
+  double coralwristpower;
+  double coralhumanpos = 10;
+  double coraloutpos = 3;
 
   //creates new talon FXS on can id 18 which is our algae roller
   //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
@@ -48,6 +54,8 @@ public class Robot extends TimedRobot {
     //algaeRoller.setMotorArrangement(MotorArrangement.NEO550_JST);
 
     //algaeRoller.setNeutralMode(false);
+
+
 
   }
 
@@ -86,9 +94,7 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopInit() {
 
-    //resets encoder offset loop when tele-op is initiated
-    runonce = 1;
-    coralrotoroffset = 0;
+    coralWrist.setPosition(0);
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
@@ -99,25 +105,32 @@ public class Robot extends TimedRobot {
   public void teleopPeriodic() {
 
     //get raw encoder data
-    var coralrotorPosSignal = coralWrist.getRotorPosition();
+    var coralrotorPosSignal = coralWrist.getPosition();
     var coralrotorPos = coralrotorPosSignal.getValueAsDouble();
 
-    //create the encoder offset
-    if(runonce==1) {
-      runonce = runonce+1;
-      coralrotoroffset = coralrotorPos;
-    }
+    coralPoserror = coraltargetpos-coralrotorPos;
+    
+    //if(coralPoserror > 0) {
+    //  coralwristpower = coralPoserror*coralkP;
+    //}else {
+    //  coralwristpower = 0;
+    //}
+    coralwristpower = coralPoserror*coralkP;
 
-    //adjust the raw encoder data with the offset
-    var coralrotorPosadjusted = coralrotorPos-coralrotoroffset;
+    //System.out.println(coralwristpower);
+
+    coralWrist.set(coralwristpower);
 
     //print the encoder value
-    System.out.println(coralrotorPosadjusted);
+    System.out.println(coralrotorPos);
 
-    //update coral encoder position
-    coralrotorPosSignal.waitForUpdate(0.050);
+    if(Operator.getRightBumperButton()==true){
+      coraltargetpos=coralhumanpos;
+    }
 
-
+    if(Operator.getLeftBumperButton()==true){
+      coraltargetpos=coraloutpos;
+    }
 
     //controls algae rollers
     if(Operator.getAButton()==true){
@@ -139,12 +152,9 @@ public class Robot extends TimedRobot {
     }
 
 
-    //if(Operator.getYButton()==true){
-    //  coralRoller.set(-0.5);
-    //}
-    //if(Operator.getXButton()==false && Operator.getYButtonPressed()==false){
-    //  coralRoller.set(0);
-    //}
+    //update coral encoder position
+    coralrotorPosSignal.waitForUpdate(0.050);
+
 
   }
 

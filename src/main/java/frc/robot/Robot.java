@@ -30,11 +30,15 @@ public class Robot extends TimedRobot {
   //coral roller motor
   private TalonFXS coralRoller = new TalonFXS(16,"rio");
 
+  public int runonce = 1;
+  public double coralrotoroffset = 0;
+
   //creates new talon FXS on can id 18 which is our algae roller
   //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
 
   //controller for robot operator
   private XboxController Operator = new XboxController(1);
+
 
   private final RobotContainer m_robotContainer;
 
@@ -81,6 +85,11 @@ public class Robot extends TimedRobot {
 
   @Override
   public void teleopInit() {
+
+    //resets encoder offset loop when tele-op is initiated
+    runonce = 1;
+    coralrotoroffset = 0;
+
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
     }
@@ -89,15 +98,26 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    var rotorPosSignal = coralWrist.getRotorPosition();
+    //get raw encoder data
+    var coralrotorPosSignal = coralWrist.getRotorPosition();
+    var coralrotorPos = coralrotorPosSignal.getValueAsDouble();
 
-    var rotorPos = rotorPosSignal.getValueAsDouble();
+    //create the encoder offset
+    if(runonce==1) {
+      runonce = runonce+1;
+      coralrotoroffset = coralrotorPos;
+    }
 
-    System.out.println(rotorPos);
+    //adjust the raw encoder data with the offset
+    var coralrotorPosadjusted = coralrotorPos-coralrotoroffset;
 
-    var rotorPosLatency =  rotorPosSignal.getTimestamp().getLatency();
+    //print the encoder value
+    System.out.println(coralrotorPosadjusted);
 
-    rotorPosSignal.waitForUpdate(0.050);
+    //update coral encoder position
+    coralrotorPosSignal.waitForUpdate(0.050);
+
+
 
     //controls algae rollers
     if(Operator.getAButton()==true){

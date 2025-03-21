@@ -41,13 +41,14 @@ public class Robot extends TimedRobot {
 
   //elevator variables and stuffs
   double elevatorPoserror;
-  double elevatorkPpositive;
-  double elevatorkPnegative;
-  double elevatortargetpos;
+  double elevatorkPpositive = 0.05;
+  double elevatortargetpos = 0; //default position at start of the tele-op
   double elevatorpower;
+  double elevatorkG = 0.03;
+  int choosethingie = 0;
   double l1 = 0; //might need to be edited!!
-  double l2; //no value assigned yet need to check on physical robot
-  double l3; //no value assigned yet need to check on physical robot
+  double l2 = 10; //no value assigned yet need to check on physical robot
+  double l3 = 20; //no value assigned yet need to check on physical robot
   double lift; //no value assigned yet need to check on physical robot
 
   //creates new talon FXS on can id 18 which is our algae roller
@@ -55,7 +56,6 @@ public class Robot extends TimedRobot {
 
   //controller for robot operator
   private XboxController Operator = new XboxController(1);
-
 
   private final RobotContainer m_robotContainer;
 
@@ -102,6 +102,8 @@ public class Robot extends TimedRobot {
 
     coralWrist.setPosition(0);
     elevatorMotor.setPosition(0);
+    elevatortargetpos = l1;
+    choosethingie = 0;
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
@@ -116,11 +118,37 @@ public class Robot extends TimedRobot {
     var coralrotorPos = coralrotorPosSignal.getValueAsDouble();
 
     //get raw encoder data for elevator
-    var elevatorrotorPosSignal = elevator.getPosition();
+    var elevatorrotorPosSignal = elevatorMotor.getPosition();
     var elevatorPos = elevatorrotorPosSignal.getValueAsDouble();
 
-    //calculate the coral position error
+    if(Operator.getRightTriggerAxis() > 0.1 && choosethingie < 2){
+      choosethingie = choosethingie+1;
+      try {
+        Thread.sleep(250);
+      } catch(InterruptedException e) {
+      }
+    }
+    if(Operator.getLeftTriggerAxis() > 0.1 && choosethingie > 0){
+      choosethingie = choosethingie-1;
+      try {
+        Thread.sleep(250);
+      } catch(InterruptedException e) {
+      }
+    }
+
+    if(choosethingie == 0){
+      elevatortargetpos = l1;
+    } else if(choosethingie == 1) {
+      elevatortargetpos = l2;
+    } else if(choosethingie == 2) {
+      elevatortargetpos = l3;
+    }
+
+    //coral position error
     coralPoserror = coraltargetpos-coralrotorPos;
+
+    //elevator position error
+    elevatorPoserror = elevatortargetpos-elevatorPos;
     
     //code to make sure coral wrist power is never negative ie. bang bang ctrl
     //if(coralPoserror > 0) {
@@ -129,19 +157,32 @@ public class Robot extends TimedRobot {
     //  coralwristpower = 0;
     //}
 
-    //lets coral wrist power go into negative to make the wrist ehav more like a pid system except only with proportional control
-    coralwristpower = coralPoserror*coralkP;
+    //takes error and multiplies it by kP to get elevator power but only if the error is a positive number
+    if(elevatorPoserror > 0){
+      elevatorpower = coralPoserror*elevatorkPpositive;
+    }else if(elevatorPoserror < 0 && elevatorPoserror > -1){ //
+      elevatorpower = elevatorkG;
+    }else {
+      elevatorpower = 0.01;
+    }
+
+    //could possibly work if force of gravity isnt strong enough to pull elevator down quickly
+    //elevatorpower = coralPoserror*elevatorkPpositive;
 
     
+    //lets coral wrist power go into negative to make the wrist behave more like a pid system except only with proportional control
+    coralwristpower = coralPoserror*coralkP;
 
-    coralWrist.set(coralwristpower);
+    //coralWrist.set(coralwristpower);
+
+    elevatorMotor.set(elevatorpower); //do not touch!!! -sets the elevator motor power to the correct power
 
     //print the encoder value - for debugging remove later
     //System.out.println(coralrotorPos);
     //print the calculated coral wrist power - for debugging remove later
     //System.out.println(coralwristpower);
     //print elevator encoder value - for debugging remove later
-    System.out.println(elevatorPos);
+    //System.out.println(elevatorpower); //print out the choose thingie variable
 
     //makes the algae intake move to the human player intake position when i press the right bumper
     if(Operator.getRightBumperButton()==true){
@@ -154,11 +195,11 @@ public class Robot extends TimedRobot {
 
     //controls algae rollers
     if(Operator.getAButton()==true){
-      algaeRoller.set(0.2);
+      algaeRoller.set(0.15);
     } else if(Operator.getBButton()==true) {
-      algaeRoller.set(-0.2);
+      algaeRoller.set(-0.15);
     } else {
-      algaeRoller.set(0);
+      algaeRoller.set(-0.04);
     }
 
 

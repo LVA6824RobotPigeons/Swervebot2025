@@ -17,13 +17,11 @@ import com.ctre.phoenix6.hardware.TalonFXS;
 //import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
 
 
-
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
 
-  
   //algae wrist motor
-  //private TalonFXS algaeWrist = new TalonFXS(17, "rio");
+  private TalonFXS algaeWrist = new TalonFXS(17, "rio");
   //algae roller
   private TalonFXS algaeRoller = new TalonFXS(18, "rio");
   //coral wrist motor
@@ -31,13 +29,13 @@ public class Robot extends TimedRobot {
   //coral roller motor
   private TalonFXS coralRoller = new TalonFXS(16,"rio");
 
-
-  double coralPoserror;
-  double coralkP = 0.1;
-  double coraltargetpos = 3;
+  //coral variables
+  double coralPoserror; //error between the current position and the target position found by subtracting current position from target position
+  double coralkP = 0.08; //value that the error is multiplied by to get proportional input into the coral wrist
+  double coraltargetpos = 3; //set the default target position for the coral wrist
   double coralwristpower;
-  double coralhumanpos = 10;
-  double coraloutpos = 3;
+  double coralhumanpos = 10; //target position for picking up coral from human player -still needs alot of tweaking
+  double coraloutpos = 3; //target position for putting coral in the reed
 
   //creates new talon FXS on can id 18 which is our algae roller
   //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
@@ -55,12 +53,7 @@ public class Robot extends TimedRobot {
 
     //algaeRoller.setNeutralMode(false);
 
-
-
   }
-
-
-  
 
   @Override
   public void robotPeriodic() {
@@ -110,24 +103,30 @@ public class Robot extends TimedRobot {
 
     coralPoserror = coraltargetpos-coralrotorPos;
     
+    //code to make sure coral wrist power is never negative ie. bang bang ctrl
     //if(coralPoserror > 0) {
     //  coralwristpower = coralPoserror*coralkP;
     //}else {
     //  coralwristpower = 0;
     //}
+
+    //lets coral wrist power go into negative to make the wrist ehav more like a pid system except only with proportional control
     coralwristpower = coralPoserror*coralkP;
 
-    //System.out.println(coralwristpower);
+    
 
     coralWrist.set(coralwristpower);
 
-    //print the encoder value
+    //print the encoder value - for debugging remove later
     System.out.println(coralrotorPos);
+    //print the calculated coral wrist power - for debugging remove later
+    //System.out.println(coralwristpower);
 
+    //makes the algae intake move to the human player intake position when i press the right bumper
     if(Operator.getRightBumperButton()==true){
       coraltargetpos=coralhumanpos;
     }
-
+    //makes the algae intake move to the reef output position when i press left trigger
     if(Operator.getLeftBumperButton()==true){
       coraltargetpos=coraloutpos;
     }

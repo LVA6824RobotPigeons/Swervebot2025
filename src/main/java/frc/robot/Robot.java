@@ -28,6 +28,8 @@ public class Robot extends TimedRobot {
   private TalonFXS coralWrist = new TalonFXS(15,"rio");
   //coral roller motor
   private TalonFXS coralRoller = new TalonFXS(16,"rio");
+  //elevator motor
+  private TalonFXS elevatorMotor = new TalonFXS(14,"rio");
 
   //coral variables
   double coralPoserror; //error between the current position and the target position found by subtracting current position from target position
@@ -35,7 +37,18 @@ public class Robot extends TimedRobot {
   double coraltargetpos = 3; //set the default target position for the coral wrist
   double coralwristpower;
   double coralhumanpos = 10; //target position for picking up coral from human player -still needs alot of tweaking
-  double coraloutpos = 3; //target position for putting coral in the reed
+  double coraloutpos = 3; //target position for putting coral in the reef
+
+  //elevator variables and stuffs
+  double elevatorPoserror;
+  double elevatorkPpositive;
+  double elevatorkPnegative;
+  double elevatortargetpos;
+  double elevatorpower;
+  double l1 = 0; //might need to be edited!!
+  double l2; //no value assigned yet need to check on physical robot
+  double l3; //no value assigned yet need to check on physical robot
+  double lift; //no value assigned yet need to check on physical robot
 
   //creates new talon FXS on can id 18 which is our algae roller
   //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
@@ -88,6 +101,7 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
 
     coralWrist.setPosition(0);
+    elevatorMotor.setPosition(0);
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
@@ -97,10 +111,15 @@ public class Robot extends TimedRobot {
   @Override
   public void teleopPeriodic() {
 
-    //get raw encoder data
+    //get raw encoder data for coral wrist
     var coralrotorPosSignal = coralWrist.getPosition();
     var coralrotorPos = coralrotorPosSignal.getValueAsDouble();
 
+    //get raw encoder data for elevator
+    var elevatorrotorPosSignal = elevator.getPosition();
+    var elevatorPos = elevatorrotorPosSignal.getValueAsDouble();
+
+    //calculate the coral position error
     coralPoserror = coraltargetpos-coralrotorPos;
     
     //code to make sure coral wrist power is never negative ie. bang bang ctrl
@@ -118,9 +137,11 @@ public class Robot extends TimedRobot {
     coralWrist.set(coralwristpower);
 
     //print the encoder value - for debugging remove later
-    System.out.println(coralrotorPos);
+    //System.out.println(coralrotorPos);
     //print the calculated coral wrist power - for debugging remove later
     //System.out.println(coralwristpower);
+    //print elevator encoder value - for debugging remove later
+    System.out.println(elevatorPos);
 
     //makes the algae intake move to the human player intake position when i press the right bumper
     if(Operator.getRightBumperButton()==true){
@@ -152,8 +173,9 @@ public class Robot extends TimedRobot {
 
 
     //update coral encoder position
-    coralrotorPosSignal.waitForUpdate(0.050);
-
+    coralrotorPosSignal.waitForUpdate(0.05);
+    //update elevator encoder position
+    elevatorrotorPosSignal.waitForUpdate(0.05);
 
   }
 

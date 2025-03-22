@@ -33,15 +33,14 @@ public class Robot extends TimedRobot {
 
   //coral variables
   double coralPoserror; //error between the current position and the target position found by subtracting current position from target position
-  double coralkP = 0.08; //value that the error is multiplied by to get proportional input into the coral wrist
-  double coraltargetpos = 3; //set the default target position for the coral wrist
+  double coralkP = 0.02; //value that the error is multiplied by to get proportional input into the coral wrist
+  double coraltargetpos = 4; //set the default target position for the coral wrist
   double coralwristpower;
-  double coralhumanpos = 10; //target position for picking up coral from human player -still needs alot of tweaking
-  double coraloutpos = 3; //target position for putting coral in the reef
+  double coralhumanpos = 17; //target position for picking up coral from human player -still needs alot of tweaking
+  double coraloutpos = 5; //target position for putting coral in the reef
 
   //elevator variables and stuffs
   double elevatorPoserror;
-  double elevatorkPpositive = 0.05;
   double elevatortargetpos = 0; //default position at start of the tele-op
   double elevatorpower;
   double elevatorkG = 0.03;
@@ -151,29 +150,26 @@ public class Robot extends TimedRobot {
     elevatorPoserror = elevatortargetpos-elevatorPos;
     
     //code to make sure coral wrist power is never negative ie. bang bang ctrl
-    //if(coralPoserror > 0) {
-    //  coralwristpower = coralPoserror*coralkP;
-    //}else {
-    //  coralwristpower = 0;
-    //}
+    if(coralPoserror > 0) {
+      coralwristpower = coralPoserror*coralkP;
+    }else if(coralPoserror < 0 && coralPoserror > -1) {
+      coralwristpower = 0;
+    }else {
+      coralwristpower = -0.1;
+    }
 
     //takes error and multiplies it by kP to get elevator power but only if the error is a positive number
     if(elevatorPoserror > 0){
-      elevatorpower = coralPoserror*elevatorkPpositive;
+      elevatorpower = 0.15;
     }else if(elevatorPoserror < 0 && elevatorPoserror > -1){ //
       elevatorpower = elevatorkG;
     }else {
-      elevatorpower = 0.01;
+      elevatorpower = -0.01;
     }
 
-    //could possibly work if force of gravity isnt strong enough to pull elevator down quickly
-    //elevatorpower = coralPoserror*elevatorkPpositive;
-
-    
     //lets coral wrist power go into negative to make the wrist behave more like a pid system except only with proportional control
-    coralwristpower = coralPoserror*coralkP;
 
-    //coralWrist.set(coralwristpower);
+    coralWrist.set(coralwristpower);
 
     elevatorMotor.set(elevatorpower); //do not touch!!! -sets the elevator motor power to the correct power
 
@@ -182,7 +178,7 @@ public class Robot extends TimedRobot {
     //print the calculated coral wrist power - for debugging remove later
     //System.out.println(coralwristpower);
     //print elevator encoder value - for debugging remove later
-    //System.out.println(elevatorpower); //print out the choose thingie variable
+    //System.out.println(elevatorPoserror); //print out the choose thingie variable
 
     //makes the algae intake move to the human player intake position when i press the right bumper
     if(Operator.getRightBumperButton()==true){

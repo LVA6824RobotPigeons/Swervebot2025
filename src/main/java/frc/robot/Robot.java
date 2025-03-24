@@ -9,6 +9,7 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.XboxController;
+import edu.wpi.first.cameraserver.CameraServer;
 //import frc.robot.subsystems.PWMTalonFXS;
 //import frc.robot.subsystems.PWMTalonFXS.MotorArrangement;
 
@@ -34,21 +35,30 @@ public class Robot extends TimedRobot {
   //coral variables
   double coralPoserror; //error between the current position and the target position found by subtracting current position from target position
   double coralkP = 0.02; //value that the error is multiplied by to get proportional input into the coral wrist
-  double coraltargetpos = 4; //set the default target position for the coral wrist
+  double coraltargetpos = 7; //set the default target position for the coral wrist
   double coralwristpower;
-  double coralhumanpos = 17; //target position for picking up coral from human player -still needs alot of tweaking
-  double coraloutpos = 5; //target position for putting coral in the reef
+  double coralhumanpos = 18; //target position for picking up coral from human player -still needs alot of tweaking
+  double coraloutpos = 7; //target position for putting coral in the reef
 
   //elevator variables and stuffs
   double elevatorPoserror;
   double elevatortargetpos = 0; //default position at start of the tele-op
   double elevatorpower;
-  double elevatorkG = 0.03;
+  double elevatorkG = 0.0355;
   int choosethingie = 0;
   double l1 = 0; //might need to be edited!!
-  double l2 = 10; //no value assigned yet need to check on physical robot
-  double l3 = 20; //no value assigned yet need to check on physical robot
+  double l2 = 14; //no value assigned yet need to check on physical robot
+  double l3 = 37; //no value assigned yet need to check on physical robot
   double lift; //no value assigned yet need to check on physical robot
+
+  //algae variables
+  double algaePoserror;
+  double algaetargetpos = 13;
+  double algaepower;
+  double algaekP  = 0.01;
+  int choosetargetpos = 0;
+  double downpos = 13;
+  double uppostition = 8;
 
   //creates new talon FXS on can id 18 which is our algae roller
   //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
@@ -60,6 +70,8 @@ public class Robot extends TimedRobot {
 
   public Robot() {
     m_robotContainer = new RobotContainer();
+    
+    CameraServer.startAutomaticCapture();
 
     //algaeRoller.setMotorArrangement(MotorArrangement.NEO550_JST);
 
@@ -103,6 +115,9 @@ public class Robot extends TimedRobot {
     elevatorMotor.setPosition(0);
     elevatortargetpos = l1;
     choosethingie = 0;
+    algaeWrist.setPosition(0);
+    choosetargetpos = 0;
+    algaetargetpos = downpos;
 
     if (m_autonomousCommand != null) {
       m_autonomousCommand.cancel();
@@ -120,6 +135,11 @@ public class Robot extends TimedRobot {
     var elevatorrotorPosSignal = elevatorMotor.getPosition();
     var elevatorPos = elevatorrotorPosSignal.getValueAsDouble();
 
+    //get raw ecoder data for algae
+    var algaerotorPosSignal = algaeWrist.getPosition();
+    var algaerotorPos = algaerotorPosSignal.getValueAsDouble();
+
+    //takes in trigger input and changes variable to act as a toggle
     if(Operator.getRightTriggerAxis() > 0.1 && choosethingie < 2){
       choosethingie = choosethingie+1;
       try {
@@ -135,6 +155,31 @@ public class Robot extends TimedRobot {
       }
     }
 
+    //takes in joystick input and changes a variable to act as a toggle
+    if(Operator.getLeftY() > 0.1 && choosetargetpos < 1){
+      choosetargetpos = choosetargetpos+1;
+      try {
+        Thread.sleep(250);
+      } catch(InterruptedException e) {
+      }
+    }
+
+    if(Operator.getLeftY() < -0.1 && choosetargetpos > 0){
+      choosetargetpos = choosetargetpos-1;
+      try {
+        Thread.sleep(250);
+      } catch(InterruptedException e) {
+      }
+    }
+
+    //sets the target position of the algae intake based on joystick input
+    if(choosetargetpos == 0){
+      algaetargetpos = downpos;
+    } else if(choosetargetpos == 1){
+      algaetargetpos = uppostition;
+    }
+
+    //sets the target position of the elevator based on trigger input
     if(choosethingie == 0){
       elevatortargetpos = l1;
     } else if(choosethingie == 1) {
@@ -148,6 +193,18 @@ public class Robot extends TimedRobot {
 
     //elevator position error
     elevatorPoserror = elevatortargetpos-elevatorPos;
+
+    //algae position error
+    algaePoserror = algaetargetpos-algaerotorPos;
+
+    //decides how much power to give motor based on error and kp
+    if(algaePoserror > 0) {
+      algaepower = algaePoserror*algaekP;
+    }else if(algaePoserror < 0 && algaePoserror > -2) {
+      algaepower = 0;
+    }else {
+      algaepower = -0.1;
+    }
     
     //code to make sure coral wrist power is never negative ie. bang bang ctrl
     if(coralPoserror > 0) {
@@ -161,16 +218,20 @@ public class Robot extends TimedRobot {
     //takes error and multiplies it by kP to get elevator power but only if the error is a positive number
     if(elevatorPoserror > 0){
       elevatorpower = 0.15;
-    }else if(elevatorPoserror < 0 && elevatorPoserror > -1){ //
+    }else if(elevatorPoserror < 0 && elevatorPoserror > -2){ //
       elevatorpower = elevatorkG;
     }else {
       elevatorpower = -0.01;
     }
 
-    //lets coral wrist power go into negative to make the wrist behave more like a pid system except only with proportional control
+    //prints out the amount of power given to the algae motor
+    //System.out.println(algaepower);
+    algaeWrist.set(algaepower);
 
+    //gives power to coral wrist motor
     coralWrist.set(coralwristpower);
 
+    //gives power to elevator motor
     elevatorMotor.set(elevatorpower); //do not touch!!! -sets the elevator motor power to the correct power
 
     //print the encoder value - for debugging remove later
@@ -195,15 +256,15 @@ public class Robot extends TimedRobot {
     } else if(Operator.getBButton()==true) {
       algaeRoller.set(-0.15);
     } else {
-      algaeRoller.set(-0.04);
+      algaeRoller.set(-0.01);
     }
 
 
     //controls coral rollers
     if(Operator.getXButton()==true){
-      coralRoller.set(0.5);
+      coralRoller.set(0.2);
     } else if(Operator.getYButton()==true) {
-      coralRoller.set(-0.5);
+      coralRoller.set(-0.2);
     } else {
       coralRoller.set(0);
     }

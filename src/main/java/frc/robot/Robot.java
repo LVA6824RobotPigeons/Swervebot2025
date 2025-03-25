@@ -4,19 +4,13 @@
 
 package frc.robot;
 
-//import static edu.wpi.first.units.Units.*;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.cameraserver.CameraServer;
-//import frc.robot.subsystems.PWMTalonFXS;
-//import frc.robot.subsystems.PWMTalonFXS.MotorArrangement;
 
 import com.ctre.phoenix6.hardware.TalonFXS;
-//import com.ctre.phoenix6.signals.ExternalFeedbackSensorSourceValue;
-//import com.ctre.phoenix6.signals.FeedbackSensorSourceValue;
-
 
 public class Robot extends TimedRobot {
   private Command m_autonomousCommand;
@@ -34,7 +28,7 @@ public class Robot extends TimedRobot {
 
   //coral variables
   double coralPoserror; //error between the current position and the target position found by subtracting current position from target position
-  double coralkP = 0.02; //value that the error is multiplied by to get proportional input into the coral wrist
+  double coralkP = 0.03; //value that the error is multiplied by to get proportional input into the coral wrist
   double coraltargetpos = 7; //set the default target position for the coral wrist
   double coralwristpower;
   double coralhumanpos = 18; //target position for picking up coral from human player -still needs alot of tweaking
@@ -57,11 +51,8 @@ public class Robot extends TimedRobot {
   double algaepower;
   double algaekP  = 0.01;
   int choosetargetpos = 0;
-  double downpos = 13;
-  double uppostition = 8;
-
-  //creates new talon FXS on can id 18 which is our algae roller
-  //private PWMTalonFXS algaeRoller = new PWMTalonFXS(18);
+  double downpos = 13; // position of elevator when down to be able to intake algae
+  double uppostition = 8; // set this higher to reduce probability of algae intake getting hit during match but dont set to high or else elevator cant move
 
   //controller for robot operator
   private XboxController Operator = new XboxController(1);
@@ -72,10 +63,6 @@ public class Robot extends TimedRobot {
     m_robotContainer = new RobotContainer();
     
     CameraServer.startAutomaticCapture();
-
-    //algaeRoller.setMotorArrangement(MotorArrangement.NEO550_JST);
-
-    //algaeRoller.setNeutralMode(false);
 
   }
 
@@ -156,7 +143,7 @@ public class Robot extends TimedRobot {
     }
 
     //takes in joystick input and changes a variable to act as a toggle
-    if(Operator.getLeftY() > 0.1 && choosetargetpos < 1){
+    if(Operator.getLeftY() < -0.1 && choosetargetpos < 1){
       choosetargetpos = choosetargetpos+1;
       try {
         Thread.sleep(250);
@@ -164,7 +151,7 @@ public class Robot extends TimedRobot {
       }
     }
 
-    if(Operator.getLeftY() < -0.1 && choosetargetpos > 0){
+    if(Operator.getLeftY() > 0.1 && choosetargetpos > 0){
       choosetargetpos = choosetargetpos-1;
       try {
         Thread.sleep(250);
@@ -217,11 +204,11 @@ public class Robot extends TimedRobot {
 
     //takes error and multiplies it by kP to get elevator power but only if the error is a positive number
     if(elevatorPoserror > 0){
-      elevatorpower = 0.15;
+      elevatorpower = 0.25;
     }else if(elevatorPoserror < 0 && elevatorPoserror > -2){ //
       elevatorpower = elevatorkG;
     }else {
-      elevatorpower = -0.01;
+      elevatorpower = -0.1;
     }
 
     //prints out the amount of power given to the algae motor

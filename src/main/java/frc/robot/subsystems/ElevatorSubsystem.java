@@ -16,6 +16,7 @@ public class ElevatorSubsystem extends SubsystemBase {
   public ElevatorSubsystem() {}
 
   public Command SendElevatorToTargetPos() {
+    
     if(choosethingie == 0){
       elevatortargetpos = l1;
     } else if(choosethingie == 1){
@@ -37,13 +38,10 @@ public class ElevatorSubsystem extends SubsystemBase {
     Elevatormotor.set(elevatorpower);
   }
 
-  ElevatorSubsystem.setDefaultCommand(SendElevatorToTargetPos);
-
   @Override
   public void periodic() {
     // This method will be called once per scheduler run
     var elevaorrotorPosSignal = Elevatormotor.getPosition();
     var elevatorpos = elevaorrotorPosSignal.getValueAsDouble;
-
   }
 }

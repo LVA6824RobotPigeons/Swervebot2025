@@ -23,6 +23,8 @@ import frc.robot.subsystems.CommandSwerveDrivetrain;
 
 
 public class RobotContainer {
+    private final ElevatorSubsystem m_ElevatorSubsystem = new ElevatorSubsystem;
+
     private double MaxSpeed = TunerConstants.kSpeedAt12Volts.in(MetersPerSecond); // kSpeedAt12Volts desired top speed
     private double MaxAngularRate = RotationsPerSecond.of(0.75).in(RadiansPerSecond); // 3/4 of a rotation per second max angular velocity
 
@@ -44,6 +46,8 @@ public class RobotContainer {
     public RobotContainer() {
         configureBindings();
 
+        m_ElevatorSubsystem.setDefaultCommand(SendElevatorToTargetPos);    
+
         /*path planner stuffs */
         autoChooser = AutoBuilder.buildAutoChooser("Test Auto");
         SmartDashboard.putData("Auto Mode", autoChooser);
@@ -51,6 +55,23 @@ public class RobotContainer {
     }
 
     private void configureBindings() {
+
+        //Uses triggers to change Choose thingie variable
+        if(Operator.getRightTriggerAxis() > 0.1 && choosethingie < 2){
+            choosethingie = choosethingie+1;
+            try {
+                Thread.sleep(250);
+            } catch(InterruptedException e) {
+            }
+        }
+        if(Operator.getLeftTriggerAxis() > 0.1 && choosethingie > 0){
+            choosethingie = choosethingie-1;
+            try {
+                Thread.sleep(250);
+            } catch(InterruptedException e) {
+            }
+        }
+
         // Note that X is defined as forward according to WPILib convention,
         // and Y is defined as to the left according to WPILib convention.
         drivetrain.setDefaultCommand(
